@@ -21,66 +21,63 @@ interface iTokenURI {
 
 //SBT interface
 interface iSbtCollection {
-    function externalMint(address _address , uint256 _amount ) external payable;
-    function balanceOf(address _owner) external view returns (uint);
+    function externalMint(address _address) external;
+    function balanceOf(address _owner) external view returns (uint256);
 }
 
 
-contract NFTBARJAPAN is RevokableDefaultOperatorFilterer, ERC2981 ,Ownable, ERC721RestrictApprove, AccessControl, ReentrancyGuard {
+contract HattenSho is RevokableDefaultOperatorFilterer, ERC2981 ,Ownable, ERC721RestrictApprove, AccessControl, ReentrancyGuard {
 
-    constructor(
-    ) ERC721Psi("Live Like A Cat", "LLAC") {
+    constructor(address adminAddress, address SBTAddress, bool mainnet 
+    ) ERC721Psi("HattenSho", "HTS") {
         
         //Role initialization
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        grantRole(MINTER_ROLE       , msg.sender);
         grantRole(AIRDROP_ROLE      , msg.sender);
         grantRole(ADMIN             , msg.sender);
 
-        setBaseURI("https://data.freelance-gakkou.jp/llac/metadata/");
+        //ADMIN ROLES to dev account
+        _setupRole(DEFAULT_ADMIN_ROLE, adminAddress);
+        grantRole(AIRDROP_ROLE      , adminAddress);
+        grantRole(ADMIN             , adminAddress);
 
-        //setUseSingleMetadata(true);
-        //setMetadataTitle("Live Like A Cat");
-        //setMetadataDescription("Live Like A Cat");
-        //setMetadataAttributes("Live Like A Cat");
-        //setImageURI("ipfs://QmT25a2iq1nSnnrHoKyjBpFNG6JqoHpsKQd5mKujjYwf78/1.gif");
+
+        setBaseURI("https://storage.googleapis.com/hattensho/hattenshoMetaData/");
 
         //CAL initialization
         setCALLevel(1);
 
-        _setCAL(0xdbaa28cBe70aF04EbFB166b1A3E8F8034e5B9FC7);//Ethereum mainnet proxy
-        //_setCAL(0xb506d7BbE23576b8AAf22477cd9A7FDF08002211);//Goerli testnet proxy
+        if(mainnet) {
+            _setCAL(0xdbaa28cBe70aF04EbFB166b1A3E8F8034e5B9FC7);//Ethereum mainnet proxy
+        }else {
+            _setCAL(0xb506d7BbE23576b8AAf22477cd9A7FDF08002211);//Goerli testnet proxy
+        }
 
         _addLocalContractAllowList(0x1E0049783F008A0085193E00003D00cd54003c71);//OpenSea
         _addLocalContractAllowList(0x4feE7B061C97C9c496b01DbcE9CDb10c02f0a0Be);//Rarible
 
         //initial mint
-        _safeMint(0x49889aB7BC1939B2D745c9e5A6516370da7098e2, 484);
-        _safeMint(0x320d25E04d913d4529941Cb9C35Ed356CB86a5cC, 300);
-        _safeMint(msg.sender, 1);
-        //_safeMint(0x49889aB7BC1939B2D745c9e5A6516370da7098e2, 10000);
-        //_safeMint(0x07Bd15a8589fd3693847B30e7452F038cc20C780, 3000);
+        _safeMint(0x88e276958970cc5e3ae439c70DBa64711D941B81, 1);//NFT_BAR_JAPAN
         
-
         //Royalty
-        setDefaultRoyalty(0x0050Ab4970100557F44730ad13c944A1C68dCD61 , 1000);
-        setWithdrawAddress(0x0050Ab4970100557F44730ad13c944A1C68dCD61);
+        setDefaultRoyalty(0x88e276958970cc5e3ae439c70DBa64711D941B81 , 1000);//Royalty: 10%
+        setWithdrawAddress(0x88e276958970cc5e3ae439c70DBa64711D941B81);
 
         setMintWithSBT(true);
-        setSbtCollection(0x6eED0Ff2afbe92B6d0990Cd63cA10Ce5F425dBf1);
+        setSbtCollection(SBTAddress);
     }
 
     //
     //withdraw section
     //
 
-    address public withdrawAddress = 0xdEcf4B112d4120B6998e5020a6B4819E490F7db6;
+    address public withdrawAddress = 0x88e276958970cc5e3ae439c70DBa64711D941B81;
 
-    function setWithdrawAddress(address _withdrawAddress) public onlyOwner {
+    function setWithdrawAddress(address _withdrawAddress) public onlyRole(ADMIN) {
         withdrawAddress = _withdrawAddress;
     }
 
-    function withdraw() public payable onlyOwner {
+    function withdraw() public payable onlyRole(ADMIN) {
         (bool os, ) = payable(withdrawAddress).call{value: address(this).balance}('');
         require(os);
     }
@@ -91,15 +88,16 @@ contract NFTBARJAPAN is RevokableDefaultOperatorFilterer, ERC2981 ,Ownable, ERC7
     //mint section
     //
 
-    uint256 public cost = 1000000000000000;
-    uint256 public maxSupply = 22221;
-    uint256 public maxMintAmountPerTransaction = 200;
-    uint256 public publicSaleMaxMintAmountPerAddress = 50;
+    uint256 public cost = 80000000000000000;//1st Sale: 0.08ETH 
+    uint256 public cost2 = 88000000000000000;//2nd Sale: 0.088ETH
+    uint256 public cost3 = 100000000000000000;//3rd Sale: TBA
+    uint256 public maxSupply = 87;//max ID (not # of supply)
+    uint256 public maxMintAmountPerTransaction = 100;
+    uint256 public publicSaleMaxMintAmountPerAddress = 100;//2nd, 3rd sale, can buy infinity
     bool public paused = true;
 
     bool public onlyAllowlisted = true;
     bool public mintCount = true;
-    bool public burnAndMintMode = false;
 
     //0 : Merkle Tree
     //1 : Mapping
@@ -109,7 +107,7 @@ contract NFTBARJAPAN is RevokableDefaultOperatorFilterer, ERC2981 ,Ownable, ERC7
     mapping(uint256 => mapping(address => uint256)) public userMintedAmount;
     mapping(uint256 => mapping(address => uint256)) public allowlistUserAmount;
 
-    bool public mintWithSBT = false;
+    bool public mintWithSBT = true;
     iSbtCollection public sbtCollection;
 
 
@@ -119,7 +117,7 @@ contract NFTBARJAPAN is RevokableDefaultOperatorFilterer, ERC2981 ,Ownable, ERC7
     }
  
     //mint with merkle tree
-    function mint(uint256 _mintAmount , uint256 _maxMintAmount , bytes32[] calldata _merkleProof , uint256 _burnId ) public payable callerIsUser{
+    function mint(uint256 _mintAmount , uint256 _maxMintAmount , bytes32[] calldata _merkleProof) public payable callerIsUser{
         require(!paused, "the contract is paused");
         require(0 < _mintAmount, "need to mint at least 1 NFT");
         require(_mintAmount <= maxMintAmountPerTransaction, "max mint amount per session exceeded");
@@ -147,15 +145,9 @@ contract NFTBARJAPAN is RevokableDefaultOperatorFilterer, ERC2981 ,Ownable, ERC7
             userMintedAmount[saleId][msg.sender] += _mintAmount;
         }
 
-        if(burnAndMintMode == true ){
-            require(_mintAmount == 1, "The number of mints is over.");
-            require(msg.sender == ownerOf(_burnId) , "Owner is different");
-            _burn(_burnId);
-        }
-
         if( mintWithSBT == true ){
             if( sbtCollection.balanceOf(msg.sender) == 0 ){
-                sbtCollection.externalMint(msg.sender,1);
+                sbtCollection.externalMint(msg.sender);
             }
         }
 
@@ -187,10 +179,6 @@ contract NFTBARJAPAN is RevokableDefaultOperatorFilterer, ERC2981 ,Ownable, ERC7
 
     function setSbtCollection(address _address) public onlyRole(ADMIN) {
         sbtCollection = iSbtCollection(_address);
-    }
-
-    function setBurnAndMintMode(bool _burnAndMintMode) public onlyRole(ADMIN) {
-        burnAndMintMode = _burnAndMintMode;
     }
 
     function setMerkleRoot(bytes32 _merkleRoot) public onlyRole(ADMIN) {
@@ -239,6 +227,28 @@ contract NFTBARJAPAN is RevokableDefaultOperatorFilterer, ERC2981 ,Ownable, ERC7
 
     function setCost(uint256 _newCost) public onlyRole(ADMIN) {
         cost = _newCost;
+    }
+
+    function setCost2(uint256 _newCost) public onlyRole(ADMIN) {
+        cost2 = _newCost;
+    }
+
+    function setCost3(uint256 _newCost) public onlyRole(ADMIN) {
+        cost3 = _newCost;
+    }
+
+    //change to 2nd Sale cost
+    function changeCostOneToTwo() public onlyRole(ADMIN) {
+        cost = cost2;
+    }
+
+    //change to 3rd Sale cost
+    function changeCostTwoToThree() public onlyRole(ADMIN) {
+        cost = cost3;
+    }
+
+    function getCurrentCost() public view returns (uint256) {
+        return cost;
     }
 
     function setOnlyAllowlisted(bool _state) public onlyRole(ADMIN) {
@@ -351,35 +361,8 @@ contract NFTBARJAPAN is RevokableDefaultOperatorFilterer, ERC2981 ,Ownable, ERC7
                 )
             ) ) );
         }
-        return string(abi.encodePacked(ERC721Psi.tokenURI(tokenId), baseExtension));
+        return string(abi.encodePacked(ERC721Psi.tokenURI(tokenId), baseExtension));//Hattensho use this simple pattern. 
     }
-
-
-
-
-    //
-    //burnin' section
-    //
-
-    bytes32 public constant MINTER_ROLE  = keccak256("MINTER_ROLE");
-    bytes32 public constant BURNER_ROLE  = keccak256("BURNER_ROLE");
-
-    function externalMint(address _address , uint256 _amount ) external payable {
-        require(hasRole(MINTER_ROLE, msg.sender), "Caller is not a minter");
-        require( (_nextTokenId() -1) + _amount <= maxSupply , "max NFT limit exceeded");
-        _safeMint( _address, _amount );
-    }
-
-    function externalBurn(uint256[] memory _burnTokenIds) external nonReentrant{
-        require(hasRole(BURNER_ROLE, msg.sender), "Caller is not a burner");
-        for (uint256 i = 0; i < _burnTokenIds.length; i++) {
-            uint256 tokenId = _burnTokenIds[i];
-            require(tx.origin == ownerOf(tokenId) , "Owner is different");
-            _burn(tokenId);
-        }        
-    }
-
-
 
     //
     //sbt and opensea filter section
@@ -553,7 +536,7 @@ contract NFTBARJAPAN is RevokableDefaultOperatorFilterer, ERC2981 ,Ownable, ERC7
     //
     //setDefaultRoyalty
     //
-    function setDefaultRoyalty(address _receiver, uint96 _feeNumerator) public onlyOwner{
+    function setDefaultRoyalty(address _receiver, uint96 _feeNumerator) public onlyRole(ADMIN){
         _setDefaultRoyalty(_receiver, _feeNumerator);
     }
 

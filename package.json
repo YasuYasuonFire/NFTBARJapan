@@ -1,24 +1,25 @@
 {
-  "name": "slash-extension-nft-minting",
+  "name": "nftbarjapan",
   "version": "1.0.0",
-  "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/slash-fi-public/slash-extension-nft-minting.git"
+    "url": "git+https://github.com/YasuYasuonFire/NFTBARJapan.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/slash-fi-public/slash-extension-nft-minting/issues"
+    "url": "https://github.com/YasuYasuonFire/NFTBARJapan/issues"
   },
-  "homepage": "https://github.com/slash-fi-public/slash-extension-nft-minting#readme",
+  "homepage": "https://github.com/YasuYasuonFire/NFTBARJapan#readme",
   "dependencies": {
     "@openzeppelin/contracts": "^4.7.2",
+    "base64-sol": "^1.1.0",
+    "chai": "^4.3.7",
     "contract-allow-list": "^1.0.7",
     "dotenv": "^16.0.3",
     "erc721psi": "^0.7.0",
@@ -26,6 +27,8 @@
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^2.0.1",
-    "hardhat": "^2.12.6"
-  }
+    "hardhat": "^2.12.6",
+    "mocha": "^10.2.0"
+  },
+  "description": ""
 }
