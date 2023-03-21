@@ -1,5 +1,3 @@
 module.exports = [
  "0x29259AB48215239dBE1bc1e7bFCC818EB426ad7B",
- "0x8d3ED447b69e669e71ae1D626eb00b4Dec20Add5",
- false,
 ];

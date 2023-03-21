@@ -2,7 +2,7 @@
 const main = async () => {
   //deploy SBT
   const ContractFactorySBT = await hre.ethers.getContractFactory("HattenShoSBT");
-  const HSSBTContractdeploying = await ContractFactory.deploy("0x29259AB48215239dBE1bc1e7bFCC818EB426ad7B");//false:Goerli
+  const HSSBTContractdeploying = await ContractFactorySBT.deploy("0x29259AB48215239dBE1bc1e7bFCC818EB426ad7B");//false:Goerli
   const HSSBTContract = await HSSBTContractdeploying.deployed();
   console.log("SBT Contract address: ", HSSBTContract.address);
 
